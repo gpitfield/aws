@@ -13,7 +13,7 @@ import (
 )
 
 func InstanceID() string {
-	c := http.Client{Timeout: time.Second * 10}
+	c := http.Client{Timeout: time.Second * 2}
 	resp, err := c.Get("http://169.254.169.254/latest/meta-data/instance-id")
 	if err != nil {
 		log.Println(err)
