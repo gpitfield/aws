@@ -12,8 +12,18 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 )
 
+var timeout = time.Second * 10
+
+func SetTimeout(seconds float64) {
+	timeout = time.Second * time.Duration(seconds)
+}
+
+func GetTimeout() time.Duration {
+	return timeout
+}
+
 func InstanceID() string {
-	c := http.Client{Timeout: time.Second * 2}
+	c := http.Client{Timeout: timeout}
 	resp, err := c.Get("http://169.254.169.254/latest/meta-data/instance-id")
 	if err != nil {
 		log.Println(err)
@@ -76,6 +86,5 @@ func GetEnvironment() (environment string) {
 	if len(resp.Tags) == 1 {
 		environment = *resp.Tags[0].Value
 	}
-	log.Println("environment", environment)
 	return
 }
