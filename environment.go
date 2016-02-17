@@ -37,30 +37,18 @@ func InstanceID() string {
 	return string(body)
 }
 
-func GetEnvironment() (environment string) {
-	// try to get the variable from the environment
-	environment = os.Getenv("environment")
-	if environment != "" {
-		log.Println("environment from envvar", environment)
-		return
+func GetInstanceTags(instanceID string, tags []*string, region string) (results []*ec2.TagDescription, err error) {
+	if region == "" {
+		region = "us-east-1"
 	}
-	instanceID := InstanceID()
-	if instanceID == "" {
-		environment = "dev"
-		log.Println("environment from default", environment)
-		return
-	}
-	log.Println("instanceID", instanceID)
-	sess := session.New(&aws.Config{Region: aws.String("us-east-1")})
+	sess := session.New(&aws.Config{Region: aws.String(region)})
 	svc := ec2.New(sess)
 	params := &ec2.DescribeTagsInput{
 		DryRun: aws.Bool(false),
 		Filters: []*ec2.Filter{
 			{
-				Name: aws.String("key"),
-				Values: []*string{
-					aws.String("environment"),
-				},
+				Name:   aws.String("key"),
+				Values: tags,
 			},
 			{
 				Name: aws.String("resource-id"),
@@ -79,12 +67,33 @@ func GetEnvironment() (environment string) {
 	}
 	resp, err := svc.DescribeTags(params)
 	if err != nil {
-		log.Println("describeTags", err.Error())
+		return
+	}
+	return resp.Tags, err
+}
+
+func GetEnvironment() (environment string) {
+	// try to get the variable from the environment
+	environment = os.Getenv("ENVIRONMENT")
+	if environment != "" {
+		log.Println("environment from envvar", environment)
+		return
+	}
+	instanceID := InstanceID()
+	if instanceID == "" {
+		environment = "dev"
+		log.Println("environment from default", environment)
+		return
+	}
+	// otherwise try instance Tags
+	tags, err := GetInstanceTags(instanceID, []*string{aws.String("environment")}, "us-east-1")
+	if err != nil {
+		log.Println(err)
 		return
 	}
 
-	if len(resp.Tags) == 1 {
-		environment = *resp.Tags[0].Value
+	if len(tags) == 1 {
+		environment = *tags[0].Value
 	}
 	return
 }
