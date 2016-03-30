@@ -1,3 +1,6 @@
+// Package aws provides a thin wrapper around a subset of AWS services, including instance tags
+// and SQS. Note that this makes use of the default AWS environment variables AWS_ACCESS_KEY_ID,
+// AWS_SECRET_ACCESS_KEY, and REGION
 package aws
 
 import (
@@ -28,14 +31,16 @@ var (
 // Return a singleton SQS service instance
 func SQS() *sqs.SQS {
 	if sqsService == nil {
-		id, ok := viper.Get("SQS_ACCESS_KEY").(string)
-		secret, ok := viper.Get("SQS_SECRET_KEY").(string)
+		key, ok := viper.Get("aws_access_key_id").(string)
+		secret, ok := viper.Get("aws_secret_access_key").(string)
+		region, ok := viper.Get("region").(string)
 		if ok {
 			sqsService = sqs.New(session.New(&aws.Config{
-				Region:      aws.String("us-east-1"),
-				Credentials: credentials.NewStaticCredentials(id, secret, ""),
+				Region:      aws.String(region),
+				Credentials: credentials.NewStaticCredentials(key, secret, ""),
 			}))
 		} else {
+			log.Println("no AWS environment variables found; defaulting to EC2 instance profile.")
 			sqsService = sqs.New(session.New())
 		}
 	}

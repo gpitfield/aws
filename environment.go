@@ -1,5 +1,3 @@
-// Package aws provides a thin wrapper around a subset of AWS services, including instance tags
-// and SQS.
 package aws
 
 import (
@@ -11,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/spf13/viper"
 )
 
 var timeout = time.Second * 10
@@ -44,7 +43,7 @@ func InstanceID() string {
 // Return requested tags for the given EC2 instanceID
 func GetInstanceTags(instanceID string, tags []*string, region string) (results []*ec2.TagDescription, err error) {
 	if region == "" {
-		region = "us-east-1"
+		region, _ = viper.Get("region").(string)
 	}
 	sess := session.New(&aws.Config{Region: aws.String(region)})
 	svc := ec2.New(sess)
@@ -87,7 +86,8 @@ func GetDeploy() (deploy string) {
 		return
 	}
 	// otherwise try instance Tags
-	tags, err := GetInstanceTags(instanceID, []*string{aws.String("deploy")}, "us-east-1")
+	region, _ := viper.Get("region").(string)
+	tags, err := GetInstanceTags(instanceID, []*string{aws.String("deploy")}, region)
 	if err != nil {
 		log.Println(err)
 		return
