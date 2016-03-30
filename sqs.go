@@ -31,9 +31,9 @@ var (
 // Return a singleton SQS service instance
 func SQS() *sqs.SQS {
 	if sqsService == nil {
+		region, ok := viper.Get("region").(string)
 		key, ok := viper.Get("aws_access_key_id").(string)
 		secret, ok := viper.Get("aws_secret_access_key").(string)
-		region, ok := viper.Get("region").(string)
 		if ok {
 			sqsService = sqs.New(session.New(&aws.Config{
 				Region:      aws.String(region),
@@ -71,17 +71,14 @@ func queueURL(queue string) (url string) {
 
 // SQS channel returns a blocking go chan that masks the underlying SQS transport
 func SQSChannel(queue string) (c chan []byte) {
-	fmt.Println("getting channel", queue)
 	channels.RLock()
 	if c, exists := channels.m[queue]; !exists {
 		channels.RUnlock()
 		channels.Lock()
-		fmt.Println("creating", queue)
 		c = make(chan []byte) // blocking channel
 		channels.m[queue] = c
 		channels.Unlock()
 		go receiveQueue(queue)
-		fmt.Println("all set")
 	} else {
 		channels.RUnlock()
 	}
@@ -103,24 +100,19 @@ func QueueMessage(queue string, message []byte) (err error) {
 
 // Receive from the named SQS queue, transferring its contents to the corresponding go chan
 func receiveQueue(queue string) {
-	fmt.Println("receiving the first", queue)
 	svc := SQS()
-	fmt.Println("service achieved", queue)
 	params := &sqs.ReceiveMessageInput{
 		QueueUrl:            aws.String(queueURL(queue)),
 		MaxNumberOfMessages: aws.Int64(1),
 		VisibilityTimeout:   aws.Int64(1),
 		WaitTimeSeconds:     aws.Int64(pollWait), // long polling
 	}
-	fmt.Println("entering loop", queue)
 	for {
-		fmt.Println("receiving!!", queue)
 		resp, err := svc.ReceiveMessage(params)
 		if err != nil {
 			log.Println(err)
 		} else if len(resp.Messages) > 0 {
 			msg := resp.Messages[0]
-			fmt.Println("message:", msg)
 			SQSChannel(queue) <- []byte(*msg.Body)
 
 			// delete message
