@@ -1,15 +1,12 @@
 package aws
 
 import (
-	"io/ioutil"
 	"log"
-	"net/http"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/spf13/viper"
 )
 
 var timeout = time.Second * 10
@@ -24,28 +21,12 @@ func GetTimeout() time.Duration {
 	return timeout
 }
 
-// Return the instance ID for the host EC2 machine
-func InstanceID() string {
-	c := http.Client{Timeout: timeout}
-	resp, err := c.Get("http://169.254.169.254/latest/meta-data/instance-id")
-	if err != nil {
-		log.Println(err)
-		return ""
-	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Println(err)
-	}
-	return string(body)
-}
-
 // Return requested tags for the given EC2 instanceID
-func GetInstanceTags(instanceID string, tags []*string, region string) (results []*ec2.TagDescription, err error) {
-	if region == "" {
-		region, _ = viper.Get("region").(string)
+func GetInstanceTags(instanceID string, tags []*string, reg string) (results []*ec2.TagDescription, err error) {
+	if reg == "" {
+		reg = region()
 	}
-	sess := session.New(&aws.Config{Region: aws.String(region)})
+	sess := session.New(&aws.Config{Region: aws.String(reg)})
 	svc := ec2.New(sess)
 	params := &ec2.DescribeTagsInput{
 		DryRun: aws.Bool(false),
@@ -86,8 +67,7 @@ func GetDeploy() (deploy string) {
 		return
 	}
 	// otherwise try instance Tags
-	region, _ := viper.Get("region").(string)
-	tags, err := GetInstanceTags(instanceID, []*string{aws.String("deploy")}, region)
+	tags, err := GetInstanceTags(instanceID, []*string{aws.String("deploy")}, region())
 	if err != nil {
 		log.Println(err)
 		return

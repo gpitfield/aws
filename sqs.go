@@ -12,7 +12,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -31,13 +30,10 @@ var (
 // Return a singleton SQS service instance
 func SQS() *sqs.SQS {
 	if sqsService == nil {
-		region, ok := viper.Get("region").(string)
-		key, ok := viper.Get("aws_access_key_id").(string)
-		secret, ok := viper.Get("aws_secret_access_key").(string)
-		if ok {
+		if accessKey() != "" && secretKey() != "" && region() != "" {
 			sqsService = sqs.New(session.New(&aws.Config{
-				Region:      aws.String(region),
-				Credentials: credentials.NewStaticCredentials(key, secret, ""),
+				Region:      aws.String(region()),
+				Credentials: credentials.NewStaticCredentials(accessKey(), secretKey(), ""),
 			}))
 		} else {
 			log.Println("no AWS environment variables found; defaulting to EC2 instance profile.")
