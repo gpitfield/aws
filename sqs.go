@@ -36,8 +36,10 @@ func SQS() *sqs.SQS {
 				Credentials: credentials.NewStaticCredentials(accessKey(), secretKey(), ""),
 			}))
 		} else {
-			log.Println("no AWS environment variables found; defaulting to EC2 instance profile.")
-			sqsService = sqs.New(session.New())
+			log.Printf("no AWS environment variables found; defaulting to EC2 instance profile and region %s.\n", region())
+			sqsService = sqs.New(session.New(&aws.Config{
+				Region: aws.String(region()),
+			}))
 		}
 	}
 	return sqsService
