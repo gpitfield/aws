@@ -16,15 +16,15 @@ func init() {
 }
 
 func region() string {
-	return viper.GetString("region")
+	return v.GetString("region")
 }
 
 func accessKey() string {
-	return viper.GetString("aws_access_key_id")
+	return v.GetString("aws_access_key_id")
 }
 
 func secretKey() string {
-	return viper.GetString("aws_secret_access_key")
+	return v.GetString("aws_secret_access_key")
 }
 
 // Return the instance ID for the host EC2 machine
